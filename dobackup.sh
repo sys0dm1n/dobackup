@@ -18,8 +18,8 @@ FLOG=$COPY_TO/backup-$DATE.log
 #-------------------------------------------------------------------------------------------------
 DB_BCK_NAME="mysql-"$DATE
 WEB_BCK_NAME="website-"$DATE
-MYSQL_USER=USERNAME
-MYSQL_PWD=YOURPASSWORD
+MYSQL_USER=root
+MYSQL_PWD=root_PASSWORD
 HOST=localhost
 
 #-------------------------------------------------------------------------------------------------
@@ -35,13 +35,8 @@ echo "##########################################################################
 echo "# DB BACKUP `date '+%F'`at ` date '+%T'`                                      #" | tee -a $FLOG
 echo "###############################################################################" | tee -a $FLOG
 
-for db in $(echo 'SHOW DATABASES;'|mysql -u$MYSQL_USER -p$MYSQL_PWD -h$HOST|grep -v '^Database$'|grep -E 'db1|db2|db3');
-do
-		mysqldump \
-			-u$MYSQL_USER -p$MYSQL_PWD -h$HOST \
-			-Q -c -C --opt \
-			$db | gzip --best -c > $COPY_TO/$DBBACKUPNAME-$db.sql.gz | tee -a $FLOG;
-			echo "Backup of" $db | tee -a $FLOG;
+for db in $(mysql --user=$MYSQL_USER --password=$MYSQL_PWD -e 'show databases' -s --skip-column-names|grep -vEi 'information_schema|performance_schema');
+do mysqldump --user=$MYSQL_USER --password=$MYSQL_PWD --opt $db | gzip > "$COPY_TO/mysqldump-$HN-$db-$(date +%Y-%m-%d).gz";
 done;
 
 echo | tee -a $FLOG
@@ -49,11 +44,8 @@ echo "##########################################################################
 echo "# WEB BACKUP `date '+%F'`at ` date '+%T'`                                     #" | tee -a $FLOG
 echo "###############################################################################" | tee -a $FLOG
 
-for x in $(find $COPY_FROM -maxdepth 1 -type d \( -name web1 -o -name web2 -o -name web3 \) -print0 | xargs -0)
-do
-  tar -cpzf $COPY_TO/$WEB_BCK_NAME-$(basename $x).tar.gz $x &> /dev/null
-  echo "`date '+%T'` - $(basename $x)" | tee -a $FLOG
-done;
+  tar -cpzf $COPY_TO/$DATE-DocumentRoot.tar.gz $COPY_FROM &> /dev/null
+  echo "`date '+%T'` - DocumentRoot" | tee -a $FLOG
 
 echo | tee -a $FLOG
 echo "###############################################################################" | tee -a $FLOG
